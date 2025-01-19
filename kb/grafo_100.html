@@ -1,0 +1,444 @@
+<html>
+    <head>
+        <meta charset="utf-8">
+        
+            <script>function neighbourhoodHighlight(params) {
+  // console.log("in nieghbourhoodhighlight");
+  allNodes = nodes.get({ returnType: "Object" });
+  // originalNodes = JSON.parse(JSON.stringify(allNodes));
+  // if something is selected:
+  if (params.nodes.length > 0) {
+    highlightActive = true;
+    var i, j;
+    var selectedNode = params.nodes[0];
+    var degrees = 2;
+
+    // mark all nodes as hard to read.
+    for (let nodeId in allNodes) {
+      // nodeColors[nodeId] = allNodes[nodeId].color;
+      allNodes[nodeId].color = "rgba(200,200,200,0.5)";
+      if (allNodes[nodeId].hiddenLabel === undefined) {
+        allNodes[nodeId].hiddenLabel = allNodes[nodeId].label;
+        allNodes[nodeId].label = undefined;
+      }
+    }
+    var connectedNodes = network.getConnectedNodes(selectedNode);
+    var allConnectedNodes = [];
+
+    // get the second degree nodes
+    for (i = 1; i < degrees; i++) {
+      for (j = 0; j < connectedNodes.length; j++) {
+        allConnectedNodes = allConnectedNodes.concat(
+          network.getConnectedNodes(connectedNodes[j])
+        );
+      }
+    }
+
+    // all second degree nodes get a different color and their label back
+    for (i = 0; i < allConnectedNodes.length; i++) {
+      // allNodes[allConnectedNodes[i]].color = "pink";
+      allNodes[allConnectedNodes[i]].color = "rgba(150,150,150,0.75)";
+      if (allNodes[allConnectedNodes[i]].hiddenLabel !== undefined) {
+        allNodes[allConnectedNodes[i]].label =
+          allNodes[allConnectedNodes[i]].hiddenLabel;
+        allNodes[allConnectedNodes[i]].hiddenLabel = undefined;
+      }
+    }
+
+    // all first degree nodes get their own color and their label back
+    for (i = 0; i < connectedNodes.length; i++) {
+      // allNodes[connectedNodes[i]].color = undefined;
+      allNodes[connectedNodes[i]].color = nodeColors[connectedNodes[i]];
+      if (allNodes[connectedNodes[i]].hiddenLabel !== undefined) {
+        allNodes[connectedNodes[i]].label =
+          allNodes[connectedNodes[i]].hiddenLabel;
+        allNodes[connectedNodes[i]].hiddenLabel = undefined;
+      }
+    }
+
+    // the main node gets its own color and its label back.
+    // allNodes[selectedNode].color = undefined;
+    allNodes[selectedNode].color = nodeColors[selectedNode];
+    if (allNodes[selectedNode].hiddenLabel !== undefined) {
+      allNodes[selectedNode].label = allNodes[selectedNode].hiddenLabel;
+      allNodes[selectedNode].hiddenLabel = undefined;
+    }
+  } else if (highlightActive === true) {
+    // console.log("highlightActive was true");
+    // reset all nodes
+    for (let nodeId in allNodes) {
+      // allNodes[nodeId].color = "purple";
+      allNodes[nodeId].color = nodeColors[nodeId];
+      // delete allNodes[nodeId].color;
+      if (allNodes[nodeId].hiddenLabel !== undefined) {
+        allNodes[nodeId].label = allNodes[nodeId].hiddenLabel;
+        allNodes[nodeId].hiddenLabel = undefined;
+      }
+    }
+    highlightActive = false;
+  }
+
+  // transform the object into an array
+  var updateArray = [];
+  if (params.nodes.length > 0) {
+    for (let nodeId in allNodes) {
+      if (allNodes.hasOwnProperty(nodeId)) {
+        // console.log(allNodes[nodeId]);
+        updateArray.push(allNodes[nodeId]);
+      }
+    }
+    nodes.update(updateArray);
+  } else {
+    // console.log("Nothing was selected");
+    for (let nodeId in allNodes) {
+      if (allNodes.hasOwnProperty(nodeId)) {
+        // console.log(allNodes[nodeId]);
+        // allNodes[nodeId].color = {};
+        updateArray.push(allNodes[nodeId]);
+      }
+    }
+    nodes.update(updateArray);
+  }
+}
+
+function filterHighlight(params) {
+  allNodes = nodes.get({ returnType: "Object" });
+  // if something is selected:
+  if (params.nodes.length > 0) {
+    filterActive = true;
+    let selectedNodes = params.nodes;
+
+    // hiding all nodes and saving the label
+    for (let nodeId in allNodes) {
+      allNodes[nodeId].hidden = true;
+      if (allNodes[nodeId].savedLabel === undefined) {
+        allNodes[nodeId].savedLabel = allNodes[nodeId].label;
+        allNodes[nodeId].label = undefined;
+      }
+    }
+
+    for (let i=0; i < selectedNodes.length; i++) {
+      allNodes[selectedNodes[i]].hidden = false;
+      if (allNodes[selectedNodes[i]].savedLabel !== undefined) {
+        allNodes[selectedNodes[i]].label = allNodes[selectedNodes[i]].savedLabel;
+        allNodes[selectedNodes[i]].savedLabel = undefined;
+      }
+    }
+
+  } else if (filterActive === true) {
+    // reset all nodes
+    for (let nodeId in allNodes) {
+      allNodes[nodeId].hidden = false;
+      if (allNodes[nodeId].savedLabel !== undefined) {
+        allNodes[nodeId].label = allNodes[nodeId].savedLabel;
+        allNodes[nodeId].savedLabel = undefined;
+      }
+    }
+    filterActive = false;
+  }
+
+  // transform the object into an array
+  var updateArray = [];
+  if (params.nodes.length > 0) {
+    for (let nodeId in allNodes) {
+      if (allNodes.hasOwnProperty(nodeId)) {
+        updateArray.push(allNodes[nodeId]);
+      }
+    }
+    nodes.update(updateArray);
+  } else {
+    for (let nodeId in allNodes) {
+      if (allNodes.hasOwnProperty(nodeId)) {
+        updateArray.push(allNodes[nodeId]);
+      }
+    }
+    nodes.update(updateArray);
+  }
+}
+
+function selectNode(nodes) {
+  network.selectNodes(nodes);
+  neighbourhoodHighlight({ nodes: nodes });
+  return nodes;
+}
+
+function selectNodes(nodes) {
+  network.selectNodes(nodes);
+  filterHighlight({nodes: nodes});
+  return nodes;
+}
+
+function highlightFilter(filter) {
+  let selectedNodes = []
+  let selectedProp = filter['property']
+  if (filter['item'] === 'node') {
+    let allNodes = nodes.get({ returnType: "Object" });
+    for (let nodeId in allNodes) {
+      if (allNodes[nodeId][selectedProp] && filter['value'].includes((allNodes[nodeId][selectedProp]).toString())) {
+        selectedNodes.push(nodeId)
+      }
+    }
+  }
+  else if (filter['item'] === 'edge'){
+    let allEdges = edges.get({returnType: 'object'});
+    // check if the selected property exists for selected edge and select the nodes connected to the edge
+    for (let edge in allEdges) {
+      if (allEdges[edge][selectedProp] && filter['value'].includes((allEdges[edge][selectedProp]).toString())) {
+        selectedNodes.push(allEdges[edge]['from'])
+        selectedNodes.push(allEdges[edge]['to'])
+      }
+    }
+  }
+  selectNodes(selectedNodes)
+}</script>
+            <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/vis-network/9.1.2/dist/dist/vis-network.min.css" integrity="sha512-WgxfT5LWjfszlPHXRmBWHkV2eceiWTOBvrKCNbdgDYTHrT2AeLCGbF4sZlZw3UMN3WtL0tGUoIAKsu8mllg/XA==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+            <script src="https://cdnjs.cloudflare.com/ajax/libs/vis-network/9.1.2/dist/vis-network.min.js" integrity="sha512-LnvoEWDFrqGHlHmDD2101OrLcbsfkrzoSpvtSQtxK3RMnRV0eOkhhBN2dXHKRrUU8p2DGRTk35n4O8nWSVe1mQ==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+            
+            
+            
+            
+            
+            
+
+        
+<center>
+<h1></h1>
+</center>
+
+<!-- <link rel="stylesheet" href="../node_modules/vis/dist/vis.min.css" type="text/css" />
+<script type="text/javascript" src="../node_modules/vis/dist/vis.js"> </script>-->
+        <link
+          href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta3/dist/css/bootstrap.min.css"
+          rel="stylesheet"
+          integrity="sha384-eOJMYsd53ii+scO/bJGFsiCZc+5NDVN2yr8+0RDqr0Ql0h+rP48ckxlpbzKgwra6"
+          crossorigin="anonymous"
+        />
+        <script
+          src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta3/dist/js/bootstrap.bundle.min.js"
+          integrity="sha384-JEW9xMcG8R+pH31jmWH6WWP0WintQrMb4s7ZOdauHnUtxwoG2vI5DkLtS3qm9Ekf"
+          crossorigin="anonymous"
+        ></script>
+
+
+        <center>
+          <h1></h1>
+        </center>
+        <style type="text/css">
+
+             #mynetwork {
+                 width: 100%;
+                 height: 750px;
+                 background-color: #ffffff;
+                 border: 1px solid lightgray;
+                 position: relative;
+                 float: left;
+             }
+
+             
+             #loadingBar {
+                 position:absolute;
+                 top:0px;
+                 left:0px;
+                 width: 100%;
+                 height: 750px;
+                 background-color:rgba(200,200,200,0.8);
+                 -webkit-transition: all 0.5s ease;
+                 -moz-transition: all 0.5s ease;
+                 -ms-transition: all 0.5s ease;
+                 -o-transition: all 0.5s ease;
+                 transition: all 0.5s ease;
+                 opacity:1;
+             }
+
+             #bar {
+                 position:absolute;
+                 top:0px;
+                 left:0px;
+                 width:20px;
+                 height:20px;
+                 margin:auto auto auto auto;
+                 border-radius:11px;
+                 border:2px solid rgba(30,30,30,0.05);
+                 background: rgb(0, 173, 246); /* Old browsers */
+                 box-shadow: 2px 0px 4px rgba(0,0,0,0.4);
+             }
+
+             #border {
+                 position:absolute;
+                 top:10px;
+                 left:10px;
+                 width:500px;
+                 height:23px;
+                 margin:auto auto auto auto;
+                 box-shadow: 0px 0px 4px rgba(0,0,0,0.2);
+                 border-radius:10px;
+             }
+
+             #text {
+                 position:absolute;
+                 top:8px;
+                 left:530px;
+                 width:30px;
+                 height:50px;
+                 margin:auto auto auto auto;
+                 font-size:22px;
+                 color: #000000;
+             }
+
+             div.outerBorder {
+                 position:relative;
+                 top:400px;
+                 width:600px;
+                 height:44px;
+                 margin:auto auto auto auto;
+                 border:8px solid rgba(0,0,0,0.1);
+                 background: rgb(252,252,252); /* Old browsers */
+                 background: -moz-linear-gradient(top,  rgba(252,252,252,1) 0%, rgba(237,237,237,1) 100%); /* FF3.6+ */
+                 background: -webkit-gradient(linear, left top, left bottom, color-stop(0%,rgba(252,252,252,1)), color-stop(100%,rgba(237,237,237,1))); /* Chrome,Safari4+ */
+                 background: -webkit-linear-gradient(top,  rgba(252,252,252,1) 0%,rgba(237,237,237,1) 100%); /* Chrome10+,Safari5.1+ */
+                 background: -o-linear-gradient(top,  rgba(252,252,252,1) 0%,rgba(237,237,237,1) 100%); /* Opera 11.10+ */
+                 background: -ms-linear-gradient(top,  rgba(252,252,252,1) 0%,rgba(237,237,237,1) 100%); /* IE10+ */
+                 background: linear-gradient(to bottom,  rgba(252,252,252,1) 0%,rgba(237,237,237,1) 100%); /* W3C */
+                 filter: progid:DXImageTransform.Microsoft.gradient( startColorstr='#fcfcfc', endColorstr='#ededed',GradientType=0 ); /* IE6-9 */
+                 border-radius:72px;
+                 box-shadow: 0px 0px 10px rgba(0,0,0,0.2);
+             }
+             
+
+             
+
+             
+        </style>
+    </head>
+
+
+    <body>
+        <div class="card" style="width: 100%">
+            
+            
+            <div id="mynetwork" class="card-body"></div>
+        </div>
+
+        
+            <div id="loadingBar">
+              <div class="outerBorder">
+                <div id="text">0%</div>
+                <div id="border">
+                  <div id="bar"></div>
+                </div>
+              </div>
+            </div>
+        
+        
+
+        <script type="text/javascript">
+
+              // initialize global variables.
+              var edges;
+              var nodes;
+              var allNodes;
+              var allEdges;
+              var nodeColors;
+              var originalNodes;
+              var network;
+              var container;
+              var options, data;
+              var filter = {
+                  item : '',
+                  property : '',
+                  value : []
+              };
+
+              
+
+              
+
+              // This method is responsible for drawing the graph, returns the drawn network
+              function drawGraph() {
+                  var container = document.getElementById('mynetwork');
+
+                  
+
+                  // parsing and collecting nodes and edges from the python
+                  nodes = new vis.DataSet([{"group": "game", "id": "Baldur\u0027s Gate II: Shadows of Amn", "label": "Baldur\u0027s Gate II: Shadows of Amn", "shape": "dot", "title": "Baldur\u0027s Gate II: Shadows of Amn"}, {"group": "platform", "id": "GameCube", "label": "GameCube", "shape": "dot", "title": "GameCube"}, {"group": "game", "id": "Journey", "label": "Journey", "shape": "dot", "title": "Journey"}, {"group": "game", "id": "Super Smash Bros. Ultimate", "label": "Super Smash Bros. Ultimate", "shape": "dot", "title": "Super Smash Bros. Ultimate"}, {"group": "developer", "id": "Firaxis", "label": "Firaxis", "shape": "dot", "title": "Firaxis"}, {"group": "game", "id": "BioShock", "label": "BioShock", "shape": "dot", "title": "BioShock"}, {"group": "game", "id": "God of War", "label": "God of War", "shape": "dot", "title": "God of War"}, {"group": "game", "id": "Gears of War 2", "label": "Gears of War 2", "shape": "dot", "title": "Gears of War 2"}, {"group": "game", "id": "Team Fortress 2", "label": "Team Fortress 2", "shape": "dot", "title": "Team Fortress 2"}, {"group": "game", "id": "Banjo-Kazooie", "label": "Banjo-Kazooie", "shape": "dot", "title": "Banjo-Kazooie"}, {"group": "publisher", "id": "Annapurna Interactive", "label": "Annapurna Interactive", "shape": "dot", "title": "Annapurna Interactive"}, {"group": "game", "id": "Batman: Arkham City", "label": "Batman: Arkham City", "shape": "dot", "title": "Batman: Arkham City"}, {"group": "game", "id": "Super Mario 3D World", "label": "Super Mario 3D World", "shape": "dot", "title": "Super Mario 3D World"}, {"group": "game", "id": "Batman: Arkham Asylum", "label": "Batman: Arkham Asylum", "shape": "dot", "title": "Batman: Arkham Asylum"}, {"group": "game", "id": "Metal Gear Solid 3: Subsistence", "label": "Metal Gear Solid 3: Subsistence", "shape": "dot", "title": "Metal Gear Solid 3: Subsistence"}, {"group": "genre", "id": "Racing", "label": "Racing", "shape": "dot", "title": "Racing"}, {"group": "game", "id": "Call of Duty 4: Modern Warfare", "label": "Call of Duty 4: Modern Warfare", "shape": "dot", "title": "Call of Duty 4: Modern Warfare"}, {"group": "game", "id": "Tony Hawk\u0027s Pro Skater 3", "label": "Tony Hawk\u0027s Pro Skater 3", "shape": "dot", "title": "Tony Hawk\u0027s Pro Skater 3"}, {"group": "game", "id": "Uncharted 2: Among Thieves", "label": "Uncharted 2: Among Thieves", "shape": "dot", "title": "Uncharted 2: Among Thieves"}, {"group": "game", "id": "Tom Clancy\u0027s Splinter Cell", "label": "Tom Clancy\u0027s Splinter Cell", "shape": "dot", "title": "Tom Clancy\u0027s Splinter Cell"}, {"group": "game", "id": "Persona 5 Royal", "label": "Persona 5 Royal", "shape": "dot", "title": "Persona 5 Royal"}, {"group": "developer", "id": "Valve Software", "label": "Valve Software", "shape": "dot", "title": "Valve Software"}, {"group": "developer", "id": "Epic Games", "label": "Epic Games", "shape": "dot", "title": "Epic Games"}, {"group": "game", "id": "Grand Theft Auto: Vice City", "label": "Grand Theft Auto: Vice City", "shape": "dot", "title": "Grand Theft Auto: Vice City"}, {"group": "genre", "id": "Role-Playing", "label": "Role-Playing", "shape": "dot", "title": "Role-Playing"}, {"group": "developer", "id": "Turn 10 Studios", "label": "Turn 10 Studios", "shape": "dot", "title": "Turn 10 Studios"}, {"group": "publisher", "id": "Valve", "label": "Valve", "shape": "dot", "title": "Valve"}, {"group": "genre", "id": "Action", "label": "Action", "shape": "dot", "title": "Action"}, {"group": "game", "id": "Celeste", "label": "Celeste", "shape": "dot", "title": "Celeste"}, {"group": "platform", "id": "PlayStation 2", "label": "PlayStation 2", "shape": "dot", "title": "PlayStation 2"}, {"group": "game", "id": "Mass Effect 2", "label": "Mass Effect 2", "shape": "dot", "title": "Mass Effect 2"}, {"group": "publisher", "id": "Activision Blizzard", "label": "Activision Blizzard", "shape": "dot", "title": "Activision Blizzard"}, {"group": "platform", "id": "PlayStation", "label": "PlayStation", "shape": "dot", "title": "PlayStation"}, {"group": "platform", "id": "Nintendo 64", "label": "Nintendo 64", "shape": "dot", "title": "Nintendo 64"}, {"group": "publisher", "id": "Bethesda Softworks", "label": "Bethesda Softworks", "shape": "dot", "title": "Bethesda Softworks"}, {"group": "game", "id": "Undertale", "label": "Undertale", "shape": "dot", "title": "Undertale"}, {"group": "game", "id": "Persona 5", "label": "Persona 5", "shape": "dot", "title": "Persona 5"}, {"group": "publisher", "id": "Rockstar Games", "label": "Rockstar Games", "shape": "dot", "title": "Rockstar Games"}, {"group": "publisher", "id": "Sony Computer Entertainment", "label": "Sony Computer Entertainment", "shape": "dot", "title": "Sony Computer Entertainment"}, {"group": "game", "id": "Halo 2", "label": "Halo 2", "shape": "dot", "title": "Halo 2"}, {"group": "publisher", "id": "EA Sports BIG", "label": "EA Sports BIG", "shape": "dot", "title": "EA Sports BIG"}, {"group": "publisher", "id": "Konami", "label": "Konami", "shape": "dot", "title": "Konami"}, {"group": "game", "id": "Portal 2", "label": "Portal 2", "shape": "dot", "title": "Portal 2"}, {"group": "game", "id": "Unreal Tournament 2004", "label": "Unreal Tournament 2004", "shape": "dot", "title": "Unreal Tournament 2004"}, {"group": "publisher", "id": "Supergiant Games", "label": "Supergiant Games", "shape": "dot", "title": "Supergiant Games"}, {"group": "platform", "id": "Xbox", "label": "Xbox", "shape": "dot", "title": "Xbox"}, {"group": "developer", "id": "Intelligent Systems", "label": "Intelligent Systems", "shape": "dot", "title": "Intelligent Systems"}, {"group": "game", "id": "Super Mario Odyssey", "label": "Super Mario Odyssey", "shape": "dot", "title": "Super Mario Odyssey"}, {"group": "game", "id": "Diablo", "label": "Diablo", "shape": "dot", "title": "Diablo"}, {"group": "platform", "id": "SEGA Saturn", "label": "SEGA Saturn", "shape": "dot", "title": "SEGA Saturn"}, {"group": "platform", "id": "Xbox One", "label": "Xbox One", "shape": "dot", "title": "Xbox One"}, {"group": "game", "id": "The Elder Scrolls IV: Oblivion", "label": "The Elder Scrolls IV: Oblivion", "shape": "dot", "title": "The Elder Scrolls IV: Oblivion"}, {"group": "developer", "id": "Neversoft", "label": "Neversoft", "shape": "dot", "title": "Neversoft"}, {"group": "developer", "id": "Ubisoft", "label": "Ubisoft", "shape": "dot", "title": "Ubisoft"}, {"group": "genre", "id": "Adventure", "label": "Adventure", "shape": "dot", "title": "Adventure"}, {"group": "game", "id": "The Witcher 3: Wild Hunt", "label": "The Witcher 3: Wild Hunt", "shape": "dot", "title": "The Witcher 3: Wild Hunt"}, {"group": "publisher", "id": "Square Enix", "label": "Square Enix", "shape": "dot", "title": "Square Enix"}, {"group": "genre", "id": "Action RPG", "label": "Action RPG", "shape": "dot", "title": "Action RPG"}, {"group": "game", "id": "INSIDE", "label": "INSIDE", "shape": "dot", "title": "INSIDE"}, {"group": "game", "id": "Final Fantasy XII", "label": "Final Fantasy XII", "shape": "dot", "title": "Final Fantasy XII"}, {"group": "genre", "id": "Miscellaneous", "label": "Miscellaneous", "shape": "dot", "title": "Miscellaneous"}, {"group": "publisher", "id": "8-4", "label": "8-4", "shape": "dot", "title": "8-4"}, {"group": "game", "id": "Tony Hawk\u0027s Pro Skater 2", "label": "Tony Hawk\u0027s Pro Skater 2", "shape": "dot", "title": "Tony Hawk\u0027s Pro Skater 2"}, {"group": "developer", "id": "Aspyr Media", "label": "Aspyr Media", "shape": "dot", "title": "Aspyr Media"}, {"group": "game", "id": "World of Goo", "label": "World of Goo", "shape": "dot", "title": "World of Goo"}, {"group": "game", "id": "System Shock 2", "label": "System Shock 2", "shape": "dot", "title": "System Shock 2"}, {"group": "game", "id": "Halo: Combat Evolved", "label": "Halo: Combat Evolved", "shape": "dot", "title": "Halo: Combat Evolved"}, {"group": "game", "id": "Uncharted 3: Drake\u0027s Deception", "label": "Uncharted 3: Drake\u0027s Deception", "shape": "dot", "title": "Uncharted 3: Drake\u0027s Deception"}, {"group": "game", "id": "Resident Evil 2", "label": "Resident Evil 2", "shape": "dot", "title": "Resident Evil 2"}, {"group": "game", "id": "Skies of Arcadia", "label": "Skies of Arcadia", "shape": "dot", "title": "Skies of Arcadia"}, {"group": "platform", "id": "iOS", "label": "iOS", "shape": "dot", "title": "iOS"}, {"group": "game", "id": "Super Smash Bros. Melee", "label": "Super Smash Bros. Melee", "shape": "dot", "title": "Super Smash Bros. Melee"}, {"group": "game", "id": "Grand Theft Auto: San Andreas", "label": "Grand Theft Auto: San Andreas", "shape": "dot", "title": "Grand Theft Auto: San Andreas"}, {"group": "developer", "id": "Criterion Games", "label": "Criterion Games", "shape": "dot", "title": "Criterion Games"}, {"group": "game", "id": "Metal Gear Solid 2: Sons of Liberty", "label": "Metal Gear Solid 2: Sons of Liberty", "shape": "dot", "title": "Metal Gear Solid 2: Sons of Liberty"}, {"group": "game", "id": "The Legend of Zelda: Majora\u0027s Mask", "label": "The Legend of Zelda: Majora\u0027s Mask", "shape": "dot", "title": "The Legend of Zelda: Majora\u0027s Mask"}, {"group": "game", "id": "Fallout 3", "label": "Fallout 3", "shape": "dot", "title": "Fallout 3"}, {"group": "game", "id": "Tom Clancy\u0027s Splinter Cell Chaos Theory", "label": "Tom Clancy\u0027s Splinter Cell Chaos Theory", "shape": "dot", "title": "Tom Clancy\u0027s Splinter Cell Chaos Theory"}, {"group": "publisher", "id": "Atari", "label": "Atari", "shape": "dot", "title": "Atari"}, {"group": "developer", "id": "Moon Studios", "label": "Moon Studios", "shape": "dot", "title": "Moon Studios"}, {"group": "game", "id": "The Last of Us Part II", "label": "The Last of Us Part II", "shape": "dot", "title": "The Last of Us Part II"}, {"group": "game", "id": "Perfect Dark", "label": "Perfect Dark", "shape": "dot", "title": "Perfect Dark"}, {"group": "game", "id": "Red Dead Redemption", "label": "Red Dead Redemption", "shape": "dot", "title": "Red Dead Redemption"}, {"group": "game", "id": "Red Dead Redemption 2", "label": "Red Dead Redemption 2", "shape": "dot", "title": "Red Dead Redemption 2"}, {"group": "publisher", "id": "Tomorrow", "label": "Tomorrow", "shape": "dot", "title": "Tomorrow"}, {"group": "game", "id": "SSX", "label": "SSX", "shape": "dot", "title": "SSX"}, {"group": "platform", "id": "Nintendo Switch", "label": "Nintendo Switch", "shape": "dot", "title": "Nintendo Switch"}, {"group": "game", "id": "Persona 4 Golden", "label": "Persona 4 Golden", "shape": "dot", "title": "Persona 4 Golden"}, {"group": "game", "id": "Tony Hawk\u0027s Pro Skater", "label": "Tony Hawk\u0027s Pro Skater", "shape": "dot", "title": "Tony Hawk\u0027s Pro Skater"}, {"group": "developer", "id": "Retro Studios", "label": "Retro Studios", "shape": "dot", "title": "Retro Studios"}, {"group": "platform", "id": "Xbox 360", "label": "Xbox 360", "shape": "dot", "title": "Xbox 360"}, {"group": "game", "id": "Forza Motorsport 3", "label": "Forza Motorsport 3", "shape": "dot", "title": "Forza Motorsport 3"}, {"group": "platform", "id": "PlayStation 4", "label": "PlayStation 4", "shape": "dot", "title": "PlayStation 4"}, {"group": "publisher", "id": "Microsoft Game Studios", "label": "Microsoft Game Studios", "shape": "dot", "title": "Microsoft Game Studios"}, {"group": "publisher", "id": "SEGA", "label": "SEGA", "shape": "dot", "title": "SEGA"}, {"group": "game", "id": "Chrono Cross", "label": "Chrono Cross", "shape": "dot", "title": "Chrono Cross"}, {"group": "developer", "id": "Raven Software", "label": "Raven Software", "shape": "dot", "title": "Raven Software"}, {"group": "platform", "id": "Xbox Series S/X", "label": "Xbox Series S/X", "shape": "dot", "title": "Xbox Series S/X"}, {"group": "game", "id": "Resident Evil 4", "label": "Resident Evil 4", "shape": "dot", "title": "Resident Evil 4"}, {"group": "genre", "id": "Sports", "label": "Sports", "shape": "dot", "title": "Sports"}, {"group": "publisher", "id": "Number None", "label": "Number None", "shape": "dot", "title": "Number None"}, {"group": "developer", "id": "Irrational Games", "label": "Irrational Games", "shape": "dot", "title": "Irrational Games"}, {"group": "game", "id": "The Legend of Zelda: Ocarina of Time", "label": "The Legend of Zelda: Ocarina of Time", "shape": "dot", "title": "The Legend of Zelda: Ocarina of Time"}, {"group": "game", "id": "Call of Duty: Modern Warfare 2", "label": "Call of Duty: Modern Warfare 2", "shape": "dot", "title": "Call of Duty: Modern Warfare 2"}, {"group": "game", "id": "Company of Heroes", "label": "Company of Heroes", "shape": "dot", "title": "Company of Heroes"}, {"group": "genre", "id": "Fantasy", "label": "Fantasy", "shape": "dot", "title": "Fantasy"}, {"group": "publisher", "id": "Warner Bros. Interactive", "label": "Warner Bros. Interactive", "shape": "dot", "title": "Warner Bros. Interactive"}, {"group": "developer", "id": "Blizzard North", "label": "Blizzard North", "shape": "dot", "title": "Blizzard North"}, {"group": "game", "id": "Half-Life 2", "label": "Half-Life 2", "shape": "dot", "title": "Half-Life 2"}, {"group": "game", "id": "Sid Meier\u0027s Civilization IV", "label": "Sid Meier\u0027s Civilization IV", "shape": "dot", "title": "Sid Meier\u0027s Civilization IV"}, {"group": "game", "id": "The Legend of Zelda: Breath of the Wild", "label": "The Legend of Zelda: Breath of the Wild", "shape": "dot", "title": "The Legend of Zelda: Breath of the Wild"}, {"group": "platform", "id": "PC", "label": "PC", "shape": "dot", "title": "PC"}, {"group": "developer", "id": "id Software", "label": "id Software", "shape": "dot", "title": "id Software"}, {"group": "game", "id": "Grand Theft Auto: Chinatown Wars", "label": "Grand Theft Auto: Chinatown Wars", "shape": "dot", "title": "Grand Theft Auto: Chinatown Wars"}, {"group": "platform", "id": "Game Boy Advance", "label": "Game Boy Advance", "shape": "dot", "title": "Game Boy Advance"}, {"group": "game", "id": "Half-Life: Alyx", "label": "Half-Life: Alyx", "shape": "dot", "title": "Half-Life: Alyx"}, {"group": "game", "id": "Braid", "label": "Braid", "shape": "dot", "title": "Braid"}, {"group": "developer", "id": "BioWare", "label": "BioWare", "shape": "dot", "title": "BioWare"}, {"group": "developer", "id": "Sony Interactive Entertainment", "label": "Sony Interactive Entertainment", "shape": "dot", "title": "Sony Interactive Entertainment"}, {"group": "developer", "id": "Square", "label": "Square", "shape": "dot", "title": "Square"}, {"group": "publisher", "id": "2K Games", "label": "2K Games", "shape": "dot", "title": "2K Games"}, {"group": "game", "id": "Super Mario 64", "label": "Super Mario 64", "shape": "dot", "title": "Super Mario 64"}, {"group": "game", "id": "Minecraft", "label": "Minecraft", "shape": "dot", "title": "Minecraft"}, {"group": "game", "id": "Super Mario Sunshine", "label": "Super Mario Sunshine", "shape": "dot", "title": "Super Mario Sunshine"}, {"group": "developer", "id": "Naughty Dog", "label": "Naughty Dog", "shape": "dot", "title": "Naughty Dog"}, {"group": "game", "id": "Super Smash Bros. for Wii U", "label": "Super Smash Bros. for Wii U", "shape": "dot", "title": "Super Smash Bros. for Wii U"}, {"group": "platform", "id": "macOS", "label": "macOS", "shape": "dot", "title": "macOS"}, {"group": "game", "id": "Grand Theft Auto V", "label": "Grand Theft Auto V", "shape": "dot", "title": "Grand Theft Auto V"}, {"group": "game", "id": "Metal Gear Solid 4: Guns of the Patriots", "label": "Metal Gear Solid 4: Guns of the Patriots", "shape": "dot", "title": "Metal Gear Solid 4: Guns of the Patriots"}, {"group": "platform", "id": "Android", "label": "Android", "shape": "dot", "title": "Android"}, {"group": "publisher", "id": "Nintendo", "label": "Nintendo", "shape": "dot", "title": "Nintendo"}, {"group": "platform", "id": "Nintendo 3DS", "label": "Nintendo 3DS", "shape": "dot", "title": "Nintendo 3DS"}, {"group": "platform", "id": "Linux", "label": "Linux", "shape": "dot", "title": "Linux"}, {"group": "game", "id": "Metal Gear Solid V: The Phantom Pain", "label": "Metal Gear Solid V: The Phantom Pain", "shape": "dot", "title": "Metal Gear Solid V: The Phantom Pain"}, {"group": "game", "id": "Super Mario Galaxy", "label": "Super Mario Galaxy", "shape": "dot", "title": "Super Mario Galaxy"}, {"group": "platform", "id": "Wii U", "label": "Wii U", "shape": "dot", "title": "Wii U"}, {"group": "genre", "id": "General", "label": "General", "shape": "dot", "title": "General"}, {"group": "publisher", "id": "Deep Silver", "label": "Deep Silver", "shape": "dot", "title": "Deep Silver"}, {"group": "game", "id": "Metal Gear Solid", "label": "Metal Gear Solid", "shape": "dot", "title": "Metal Gear Solid"}, {"group": "game", "id": "Mass Effect 3", "label": "Mass Effect 3", "shape": "dot", "title": "Mass Effect 3"}, {"group": "developer", "id": "4J Studios", "label": "4J Studios", "shape": "dot", "title": "4J Studios"}, {"group": "game", "id": "Gears of War", "label": "Gears of War", "shape": "dot", "title": "Gears of War"}, {"group": "game", "id": "The Elder Scrolls V: Skyrim", "label": "The Elder Scrolls V: Skyrim", "shape": "dot", "title": "The Elder Scrolls V: Skyrim"}, {"group": "game", "id": "Grand Theft Auto IV", "label": "Grand Theft Auto IV", "shape": "dot", "title": "Grand Theft Auto IV"}, {"group": "genre", "id": "Action Adventure", "label": "Action Adventure", "shape": "dot", "title": "Action Adventure"}, {"group": "developer", "id": "Konami Digital Entertainment", "label": "Konami Digital Entertainment", "shape": "dot", "title": "Konami Digital Entertainment"}, {"group": "developer", "id": "Polyphony Digital", "label": "Polyphony Digital", "shape": "dot", "title": "Polyphony Digital"}, {"group": "developer", "id": "SCE Santa Monica Studio", "label": "SCE Santa Monica Studio", "shape": "dot", "title": "SCE Santa Monica Studio"}, {"group": "game", "id": "Metroid Prime", "label": "Metroid Prime", "shape": "dot", "title": "Metroid Prime"}, {"group": "platform", "id": "PS Vita", "label": "PS Vita", "shape": "dot", "title": "PS Vita"}, {"group": "game", "id": "BioShock Infinite", "label": "BioShock Infinite", "shape": "dot", "title": "BioShock Infinite"}, {"group": "game", "id": "Prince of Persia: The Sands of Time", "label": "Prince of Persia: The Sands of Time", "shape": "dot", "title": "Prince of Persia: The Sands of Time"}, {"group": "publisher", "id": "Feral Interactive", "label": "Feral Interactive", "shape": "dot", "title": "Feral Interactive"}, {"group": "platform", "id": "PlayStation 3", "label": "PlayStation 3", "shape": "dot", "title": "PlayStation 3"}, {"group": "genre", "id": "Platformer", "label": "Platformer", "shape": "dot", "title": "Platformer"}, {"group": "developer", "id": "Giant Sparrow", "label": "Giant Sparrow", "shape": "dot", "title": "Giant Sparrow"}, {"group": "publisher", "id": "Matt Makes Games", "label": "Matt Makes Games", "shape": "dot", "title": "Matt Makes Games"}, {"group": "game", "id": "Devil May Cry", "label": "Devil May Cry", "shape": "dot", "title": "Devil May Cry"}, {"group": "game", "id": "SSX Tricky", "label": "SSX Tricky", "shape": "dot", "title": "SSX Tricky"}, {"group": "genre", "id": "Modern", "label": "Modern", "shape": "dot", "title": "Modern"}, {"group": "game", "id": "Burnout 3: Takedown", "label": "Burnout 3: Takedown", "shape": "dot", "title": "Burnout 3: Takedown"}, {"group": "game", "id": "Gran Turismo 2", "label": "Gran Turismo 2", "shape": "dot", "title": "Gran Turismo 2"}, {"group": "game", "id": "Half-Life", "label": "Half-Life", "shape": "dot", "title": "Half-Life"}, {"group": "developer", "id": "Gearbox Software", "label": "Gearbox Software", "shape": "dot", "title": "Gearbox Software"}, {"group": "game", "id": "Final Fantasy IX", "label": "Final Fantasy IX", "shape": "dot", "title": "Final Fantasy IX"}, {"group": "publisher", "id": "Capcom", "label": "Capcom", "shape": "dot", "title": "Capcom"}, {"group": "platform", "id": "Wii", "label": "Wii", "shape": "dot", "title": "Wii"}, {"group": "genre", "id": "Puzzle", "label": "Puzzle", "shape": "dot", "title": "Puzzle"}, {"group": "game", "id": "Hades", "label": "Hades", "shape": "dot", "title": "Hades"}, {"group": "platform", "id": "Dreamcast", "label": "Dreamcast", "shape": "dot", "title": "Dreamcast"}, {"group": "game", "id": "Super Mario Galaxy 2", "label": "Super Mario Galaxy 2", "shape": "dot", "title": "Super Mario Galaxy 2"}, {"group": "game", "id": "Super Mario Advance 4: Super Mario Bros. 3", "label": "Super Mario Advance 4: Super Mario Bros. 3", "shape": "dot", "title": "Super Mario Advance 4: Super Mario Bros. 3"}, {"group": "publisher", "id": "Microsoft Studios", "label": "Microsoft Studios", "shape": "dot", "title": "Microsoft Studios"}, {"group": "developer", "id": "Electronic Arts Canada", "label": "Electronic Arts Canada", "shape": "dot", "title": "Electronic Arts Canada"}, {"group": "developer", "id": "Playground Games", "label": "Playground Games", "shape": "dot", "title": "Playground Games"}, {"group": "genre", "id": "Strategy", "label": "Strategy", "shape": "dot", "title": "Strategy"}, {"group": "developer", "id": "Rare", "label": "Rare", "shape": "dot", "title": "Rare"}, {"group": "game", "id": "The Legend of Zelda: A Link to the Past", "label": "The Legend of Zelda: A Link to the Past", "shape": "dot", "title": "The Legend of Zelda: A Link to the Past"}, {"group": "publisher", "id": "Interplay Productions", "label": "Interplay Productions", "shape": "dot", "title": "Interplay Productions"}, {"group": "game", "id": "Gran Turismo", "label": "Gran Turismo", "shape": "dot", "title": "Gran Turismo"}, {"group": "game", "id": "Forza Horizon 4", "label": "Forza Horizon 4", "shape": "dot", "title": "Forza Horizon 4"}, {"group": "game", "id": "Grand Theft Auto III", "label": "Grand Theft Auto III", "shape": "dot", "title": "Grand Theft Auto III"}, {"group": "publisher", "id": "Playdead", "label": "Playdead", "shape": "dot", "title": "Playdead"}, {"group": "game", "id": "Quake", "label": "Quake", "shape": "dot", "title": "Quake"}, {"group": "game", "id": "Forza Motorsport", "label": "Forza Motorsport", "shape": "dot", "title": "Forza Motorsport"}, {"group": "game", "id": "What Remains of Edith Finch", "label": "What Remains of Edith Finch", "shape": "dot", "title": "What Remains of Edith Finch"}, {"group": "publisher", "id": "Digital Extremes", "label": "Digital Extremes", "shape": "dot", "title": "Digital Extremes"}, {"group": "genre", "id": "Driving", "label": "Driving", "shape": "dot", "title": "Driving"}, {"group": "developer", "id": "HAL Laboratory", "label": "HAL Laboratory", "shape": "dot", "title": "HAL Laboratory"}, {"group": "game", "id": "Ori and the Will of the Wisps", "label": "Ori and the Will of the Wisps", "shape": "dot", "title": "Ori and the Will of the Wisps"}, {"group": "publisher", "id": "Ubisoft Entertainment", "label": "Ubisoft Entertainment", "shape": "dot", "title": "Ubisoft Entertainment"}, {"group": "developer", "id": "Kojima Productions", "label": "Kojima Productions", "shape": "dot", "title": "Kojima Productions"}, {"group": "game", "id": "The Legend of Zelda: Skyward Sword", "label": "The Legend of Zelda: Skyward Sword", "shape": "dot", "title": "The Legend of Zelda: Skyward Sword"}, {"group": "game", "id": "Castlevania: Symphony of the Night", "label": "Castlevania: Symphony of the Night", "shape": "dot", "title": "Castlevania: Symphony of the Night"}, {"group": "publisher", "id": "Bandai Namco Entertainment", "label": "Bandai Namco Entertainment", "shape": "dot", "title": "Bandai Namco Entertainment"}, {"group": "game", "id": "SSX 3", "label": "SSX 3", "shape": "dot", "title": "SSX 3"}, {"group": "developer", "id": "2D BOY", "label": "2D BOY", "shape": "dot", "title": "2D BOY"}, {"group": "game", "id": "Super Smash Bros. Brawl", "label": "Super Smash Bros. Brawl", "shape": "dot", "title": "Super Smash Bros. Brawl"}, {"group": "publisher", "id": "Electronic Arts", "label": "Electronic Arts", "shape": "dot", "title": "Electronic Arts"}, {"group": "developer", "id": "Rockstar North", "label": "Rockstar North", "shape": "dot", "title": "Rockstar North"}, {"group": "publisher", "id": "Atlus", "label": "Atlus", "shape": "dot", "title": "Atlus"}, {"group": "publisher", "id": "CD PROJEKT RED", "label": "CD PROJEKT RED", "shape": "dot", "title": "CD PROJEKT RED"}]);
+                  edges = new vis.DataSet([{"from": "The Legend of Zelda: Ocarina of Time", "title": "published_by", "to": "Nintendo"}, {"from": "The Legend of Zelda: Ocarina of Time", "title": "has_genre", "to": "Action Adventure"}, {"from": "The Legend of Zelda: Ocarina of Time", "title": "available_on", "to": "Wii U"}, {"from": "Tony Hawk\u0027s Pro Skater 2", "title": "developed_by", "to": "Aspyr Media"}, {"from": "Tony Hawk\u0027s Pro Skater 2", "title": "has_genre", "to": "Sports"}, {"from": "Tony Hawk\u0027s Pro Skater 2", "title": "available_on", "to": "Dreamcast"}, {"from": "Tony Hawk\u0027s Pro Skater 2", "title": "published_by", "to": "Activision Blizzard"}, {"from": "Grand Theft Auto IV", "title": "developed_by", "to": "Rockstar North"}, {"from": "Grand Theft Auto IV", "title": "has_genre", "to": "Action Adventure"}, {"from": "Grand Theft Auto IV", "title": "available_on", "to": "PC"}, {"from": "Grand Theft Auto IV", "title": "published_by", "to": "Capcom"}, {"from": "Super Mario Galaxy", "title": "published_by", "to": "Nintendo"}, {"from": "Super Mario Galaxy", "title": "has_genre", "to": "Action"}, {"from": "Super Mario Galaxy", "title": "available_on", "to": "Nintendo Switch"}, {"from": "Super Mario Galaxy 2", "title": "published_by", "to": "Nintendo"}, {"from": "Super Mario Galaxy 2", "title": "has_genre", "to": "Action"}, {"from": "Super Mario Galaxy 2", "title": "available_on", "to": "Wii"}, {"from": "Red Dead Redemption 2", "title": "published_by", "to": "Rockstar Games"}, {"from": "Red Dead Redemption 2", "title": "has_genre", "to": "Action Adventure"}, {"from": "Red Dead Redemption 2", "title": "available_on", "to": "PC"}, {"from": "Grand Theft Auto V", "title": "developed_by", "to": "Rockstar North"}, {"from": "Grand Theft Auto V", "title": "has_genre", "to": "Action Adventure"}, {"from": "Grand Theft Auto V", "title": "available_on", "to": "PC"}, {"from": "Grand Theft Auto V", "title": "published_by", "to": "Rockstar Games"}, {"from": "Grand Theft Auto V", "title": "has_genre", "to": "Modern"}, {"from": "The Legend of Zelda: Breath of the Wild", "title": "published_by", "to": "Nintendo"}, {"from": "The Legend of Zelda: Breath of the Wild", "title": "has_genre", "to": "Action Adventure"}, {"from": "The Legend of Zelda: Breath of the Wild", "title": "available_on", "to": "Nintendo Switch"}, {"from": "The Legend of Zelda: Breath of the Wild", "title": "has_genre", "to": "Fantasy"}, {"from": "Tony Hawk\u0027s Pro Skater 3", "title": "developed_by", "to": "Gearbox Software"}, {"from": "Tony Hawk\u0027s Pro Skater 3", "title": "has_genre", "to": "Sports"}, {"from": "Tony Hawk\u0027s Pro Skater 3", "title": "available_on", "to": "Xbox"}, {"from": "Tony Hawk\u0027s Pro Skater 3", "title": "published_by", "to": "Activision Blizzard"}, {"from": "Perfect Dark", "title": "developed_by", "to": "Rare"}, {"from": "Perfect Dark", "title": "has_genre", "to": "Action"}, {"from": "Perfect Dark", "title": "available_on", "to": "Xbox One"}, {"from": "Perfect Dark", "title": "published_by", "to": "Microsoft Studios"}, {"from": "Metroid Prime", "title": "developed_by", "to": "Retro Studios"}, {"from": "Metroid Prime", "title": "has_genre", "to": "Action"}, {"from": "Metroid Prime", "title": "available_on", "to": "Wii"}, {"from": "Metroid Prime", "title": "published_by", "to": "Nintendo"}, {"from": "Grand Theft Auto III", "title": "developed_by", "to": "Rockstar North"}, {"from": "Grand Theft Auto III", "title": "has_genre", "to": "Action Adventure"}, {"from": "Grand Theft Auto III", "title": "available_on", "to": "PC"}, {"from": "Grand Theft Auto III", "title": "published_by", "to": "Capcom"}, {"from": "Super Mario Odyssey", "title": "published_by", "to": "Nintendo"}, {"from": "Super Mario Odyssey", "title": "has_genre", "to": "Action"}, {"from": "Super Mario Odyssey", "title": "available_on", "to": "Nintendo Switch"}, {"from": "Halo: Combat Evolved", "title": "developed_by", "to": "Gearbox Software"}, {"from": "Halo: Combat Evolved", "title": "has_genre", "to": "Action"}, {"from": "Halo: Combat Evolved", "title": "available_on", "to": "PC"}, {"from": "Halo: Combat Evolved", "title": "published_by", "to": "Microsoft Studios"}, {"from": "Half-Life 2", "title": "developed_by", "to": "Valve Software"}, {"from": "Half-Life 2", "title": "has_genre", "to": "Action"}, {"from": "Half-Life 2", "title": "available_on", "to": "Android"}, {"from": "Half-Life 2", "title": "published_by", "to": "Valve"}, {"from": "BioShock", "title": "developed_by", "to": "Digital Extremes"}, {"from": "BioShock", "title": "has_genre", "to": "Action"}, {"from": "BioShock", "title": "available_on", "to": "Xbox One"}, {"from": "BioShock", "title": "published_by", "to": "2K Games"}, {"from": "Uncharted 2: Among Thieves", "title": "developed_by", "to": "Naughty Dog"}, {"from": "Uncharted 2: Among Thieves", "title": "has_genre", "to": "Action Adventure"}, {"from": "Uncharted 2: Among Thieves", "title": "available_on", "to": "PlayStation 4"}, {"from": "Uncharted 2: Among Thieves", "title": "published_by", "to": "Sony Computer Entertainment"}, {"from": "Resident Evil 4", "title": "developed_by", "to": "Capcom"}, {"from": "Resident Evil 4", "title": "has_genre", "to": "Action Adventure"}, {"from": "Resident Evil 4", "title": "available_on", "to": "Xbox 360"}, {"from": "Resident Evil 4", "title": "published_by", "to": "Ubisoft Entertainment"}, {"from": "Batman: Arkham City", "title": "published_by", "to": "Warner Bros. Interactive"}, {"from": "Batman: Arkham City", "title": "has_genre", "to": "Action Adventure"}, {"from": "Batman: Arkham City", "title": "available_on", "to": "macOS"}, {"from": "Mass Effect 2", "title": "developed_by", "to": "BioWare"}, {"from": "Mass Effect 2", "title": "has_genre", "to": "Role-Playing"}, {"from": "Mass Effect 2", "title": "available_on", "to": "Xbox One"}, {"from": "Mass Effect 2", "title": "published_by", "to": "Electronic Arts"}, {"from": "The Elder Scrolls V: Skyrim", "title": "published_by", "to": "Bethesda Softworks"}, {"from": "The Elder Scrolls V: Skyrim", "title": "has_genre", "to": "Role-Playing"}, {"from": "The Elder Scrolls V: Skyrim", "title": "available_on", "to": "PC"}, {"from": "Half-Life", "title": "developed_by", "to": "Valve Software"}, {"from": "Half-Life", "title": "has_genre", "to": "Action"}, {"from": "Half-Life", "title": "available_on", "to": "PC"}, {"from": "Half-Life", "title": "published_by", "to": "Valve"}, {"from": "Gran Turismo", "title": "developed_by", "to": "Sony Interactive Entertainment"}, {"from": "Gran Turismo", "title": "has_genre", "to": "Driving"}, {"from": "Gran Turismo", "title": "available_on", "to": "PlayStation"}, {"from": "Gran Turismo", "title": "published_by", "to": "Sony Computer Entertainment"}, {"from": "Metal Gear Solid 2: Sons of Liberty", "title": "developed_by", "to": "Kojima Productions"}, {"from": "Metal Gear Solid 2: Sons of Liberty", "title": "has_genre", "to": "Action Adventure"}, {"from": "Metal Gear Solid 2: Sons of Liberty", "title": "available_on", "to": "PS Vita"}, {"from": "Metal Gear Solid 2: Sons of Liberty", "title": "published_by", "to": "Konami"}, {"from": "Baldur\u0027s Gate II: Shadows of Amn", "title": "developed_by", "to": "BioWare"}, {"from": "Baldur\u0027s Gate II: Shadows of Amn", "title": "has_genre", "to": "Role-Playing"}, {"from": "Baldur\u0027s Gate II: Shadows of Amn", "title": "available_on", "to": "Android"}, {"from": "Baldur\u0027s Gate II: Shadows of Amn", "title": "published_by", "to": "Interplay Productions"}, {"from": "Grand Theft Auto: San Andreas", "title": "developed_by", "to": "Rockstar North"}, {"from": "Grand Theft Auto: San Andreas", "title": "has_genre", "to": "Action Adventure"}, {"from": "Grand Theft Auto: San Andreas", "title": "available_on", "to": "Xbox"}, {"from": "Grand Theft Auto: San Andreas", "title": "published_by", "to": "Capcom"}, {"from": "Grand Theft Auto: Vice City", "title": "developed_by", "to": "Rockstar North"}, {"from": "Grand Theft Auto: Vice City", "title": "has_genre", "to": "Action Adventure"}, {"from": "Grand Theft Auto: Vice City", "title": "available_on", "to": "macOS"}, {"from": "Grand Theft Auto: Vice City", "title": "published_by", "to": "Capcom"}, {"from": "Red Dead Redemption", "title": "developed_by", "to": "Rockstar North"}, {"from": "Red Dead Redemption", "title": "has_genre", "to": "Action"}, {"from": "Red Dead Redemption", "title": "available_on", "to": "Xbox One"}, {"from": "Red Dead Redemption", "title": "published_by", "to": "Rockstar Games"}, {"from": "Halo 2", "title": "developed_by", "to": "Microsoft Game Studios"}, {"from": "Halo 2", "title": "has_genre", "to": "Action"}, {"from": "Halo 2", "title": "available_on", "to": "Xbox One"}, {"from": "Halo 2", "title": "published_by", "to": "Microsoft Studios"}, {"from": "The Legend of Zelda: A Link to the Past", "title": "published_by", "to": "Nintendo"}, {"from": "The Legend of Zelda: A Link to the Past", "title": "has_genre", "to": "Action Adventure"}, {"from": "The Legend of Zelda: A Link to the Past", "title": "available_on", "to": "Nintendo 3DS"}, {"from": "The Legend of Zelda: Majora\u0027s Mask", "title": "published_by", "to": "Nintendo"}, {"from": "The Legend of Zelda: Majora\u0027s Mask", "title": "has_genre", "to": "Action Adventure"}, {"from": "The Legend of Zelda: Majora\u0027s Mask", "title": "available_on", "to": "Nintendo 64"}, {"from": "Persona 5 Royal", "title": "developed_by", "to": "Atlus"}, {"from": "Persona 5 Royal", "title": "has_genre", "to": "Role-Playing"}, {"from": "Persona 5 Royal", "title": "available_on", "to": "PlayStation 4"}, {"from": "Persona 5 Royal", "title": "published_by", "to": "SEGA"}, {"from": "Portal 2", "title": "developed_by", "to": "Valve Software"}, {"from": "Portal 2", "title": "has_genre", "to": "Action"}, {"from": "Portal 2", "title": "available_on", "to": "Xbox One"}, {"from": "Portal 2", "title": "published_by", "to": "Electronic Arts"}, {"from": "Metal Gear Solid V: The Phantom Pain", "title": "developed_by", "to": "Konami Digital Entertainment"}, {"from": "Metal Gear Solid V: The Phantom Pain", "title": "has_genre", "to": "Modern"}, {"from": "Metal Gear Solid V: The Phantom Pain", "title": "available_on", "to": "PC"}, {"from": "Metal Gear Solid V: The Phantom Pain", "title": "published_by", "to": "Konami"}, {"from": "Metal Gear Solid V: The Phantom Pain", "title": "has_genre", "to": "Action Adventure"}, {"from": "World of Goo", "title": "developed_by", "to": "2D BOY"}, {"from": "World of Goo", "title": "has_genre", "to": "Miscellaneous"}, {"from": "World of Goo", "title": "available_on", "to": "macOS"}, {"from": "World of Goo", "title": "published_by", "to": "Tomorrow"}, {"from": "World of Goo", "title": "has_genre", "to": "Puzzle"}, {"from": "BioShock Infinite", "title": "developed_by", "to": "Aspyr Media"}, {"from": "BioShock Infinite", "title": "has_genre", "to": "Action"}, {"from": "BioShock Infinite", "title": "available_on", "to": "PC"}, {"from": "BioShock Infinite", "title": "published_by", "to": "2K Games"}, {"from": "Final Fantasy IX", "title": "developed_by", "to": "Sony Interactive Entertainment"}, {"from": "Final Fantasy IX", "title": "has_genre", "to": "Role-Playing"}, {"from": "Final Fantasy IX", "title": "available_on", "to": "PlayStation 3"}, {"from": "Final Fantasy IX", "title": "published_by", "to": "Electronic Arts"}, {"from": "Call of Duty: Modern Warfare 2", "title": "developed_by", "to": "Aspyr Media"}, {"from": "Call of Duty: Modern Warfare 2", "title": "has_genre", "to": "Action"}, {"from": "Call of Duty: Modern Warfare 2", "title": "available_on", "to": "PC"}, {"from": "Call of Duty: Modern Warfare 2", "title": "published_by", "to": "Activision Blizzard"}, {"from": "God of War", "title": "developed_by", "to": "SCE Santa Monica Studio"}, {"from": "God of War", "title": "has_genre", "to": "Action Adventure"}, {"from": "God of War", "title": "available_on", "to": "PlayStation 4"}, {"from": "God of War", "title": "published_by", "to": "Sony Interactive Entertainment"}, {"from": "Devil May Cry", "title": "published_by", "to": "Capcom"}, {"from": "Devil May Cry", "title": "has_genre", "to": "Action Adventure"}, {"from": "Devil May Cry", "title": "available_on", "to": "Xbox One"}, {"from": "Call of Duty 4: Modern Warfare", "title": "developed_by", "to": "Raven Software"}, {"from": "Call of Duty 4: Modern Warfare", "title": "has_genre", "to": "Action"}, {"from": "Call of Duty 4: Modern Warfare", "title": "available_on", "to": "PC"}, {"from": "Call of Duty 4: Modern Warfare", "title": "published_by", "to": "Square Enix"}, {"from": "Chrono Cross", "title": "developed_by", "to": "Square"}, {"from": "Chrono Cross", "title": "has_genre", "to": "Role-Playing"}, {"from": "Chrono Cross", "title": "available_on", "to": "PlayStation"}, {"from": "Chrono Cross", "title": "published_by", "to": "Electronic Arts"}, {"from": "Celeste", "title": "published_by", "to": "Matt Makes Games"}, {"from": "Celeste", "title": "has_genre", "to": "Action"}, {"from": "Celeste", "title": "available_on", "to": "macOS"}, {"from": "Gears of War", "title": "developed_by", "to": "Epic Games"}, {"from": "Gears of War", "title": "has_genre", "to": "Action"}, {"from": "Gears of War", "title": "available_on", "to": "Xbox One"}, {"from": "Gears of War", "title": "published_by", "to": "Microsoft Studios"}, {"from": "The Elder Scrolls IV: Oblivion", "title": "developed_by", "to": "Bethesda Softworks"}, {"from": "The Elder Scrolls IV: Oblivion", "title": "has_genre", "to": "Role-Playing"}, {"from": "The Elder Scrolls IV: Oblivion", "title": "available_on", "to": "Xbox One"}, {"from": "The Elder Scrolls IV: Oblivion", "title": "published_by", "to": "2K Games"}, {"from": "Quake", "title": "developed_by", "to": "id Software"}, {"from": "Quake", "title": "has_genre", "to": "Action"}, {"from": "Quake", "title": "available_on", "to": "SEGA Saturn"}, {"from": "Quake", "title": "published_by", "to": "Bethesda Softworks"}, {"from": "Super Mario Advance 4: Super Mario Bros. 3", "title": "published_by", "to": "Nintendo"}, {"from": "Super Mario Advance 4: Super Mario Bros. 3", "title": "has_genre", "to": "Action"}, {"from": "Super Mario Advance 4: Super Mario Bros. 3", "title": "available_on", "to": "Game Boy Advance"}, {"from": "Metal Gear Solid", "title": "developed_by", "to": "Sony Interactive Entertainment"}, {"from": "Metal Gear Solid", "title": "has_genre", "to": "Action Adventure"}, {"from": "Metal Gear Solid", "title": "available_on", "to": "PlayStation"}, {"from": "Metal Gear Solid", "title": "published_by", "to": "Microsoft Studios"}, {"from": "Tom Clancy\u0027s Splinter Cell Chaos Theory", "title": "developed_by", "to": "Ubisoft"}, {"from": "Tom Clancy\u0027s Splinter Cell Chaos Theory", "title": "has_genre", "to": "Action Adventure"}, {"from": "Tom Clancy\u0027s Splinter Cell Chaos Theory", "title": "available_on", "to": "Xbox One"}, {"from": "Tom Clancy\u0027s Splinter Cell Chaos Theory", "title": "published_by", "to": "Ubisoft Entertainment"}, {"from": "Burnout 3: Takedown", "title": "developed_by", "to": "Criterion Games"}, {"from": "Burnout 3: Takedown", "title": "has_genre", "to": "Driving"}, {"from": "Burnout 3: Takedown", "title": "available_on", "to": "PlayStation 2"}, {"from": "Burnout 3: Takedown", "title": "published_by", "to": "Electronic Arts"}, {"from": "Diablo", "title": "developed_by", "to": "Blizzard North"}, {"from": "Diablo", "title": "has_genre", "to": "Role-Playing"}, {"from": "Diablo", "title": "available_on", "to": "PlayStation"}, {"from": "Diablo", "title": "published_by", "to": "Electronic Arts"}, {"from": "Metal Gear Solid 3: Subsistence", "title": "developed_by", "to": "Kojima Productions"}, {"from": "Metal Gear Solid 3: Subsistence", "title": "has_genre", "to": "Action Adventure"}, {"from": "Metal Gear Solid 3: Subsistence", "title": "available_on", "to": "PS Vita"}, {"from": "Metal Gear Solid 3: Subsistence", "title": "published_by", "to": "Konami"}, {"from": "Metal Gear Solid 4: Guns of the Patriots", "title": "developed_by", "to": "Konami Digital Entertainment"}, {"from": "Metal Gear Solid 4: Guns of the Patriots", "title": "has_genre", "to": "Action Adventure"}, {"from": "Metal Gear Solid 4: Guns of the Patriots", "title": "available_on", "to": "PlayStation 3"}, {"from": "Metal Gear Solid 4: Guns of the Patriots", "title": "published_by", "to": "Konami"}, {"from": "Sid Meier\u0027s Civilization IV", "title": "developed_by", "to": "Firaxis"}, {"from": "Sid Meier\u0027s Civilization IV", "title": "has_genre", "to": "Strategy"}, {"from": "Sid Meier\u0027s Civilization IV", "title": "available_on", "to": "PC"}, {"from": "Sid Meier\u0027s Civilization IV", "title": "published_by", "to": "2K Games"}, {"from": "Super Mario 64", "title": "published_by", "to": "Nintendo"}, {"from": "Super Mario 64", "title": "has_genre", "to": "Action"}, {"from": "Super Mario 64", "title": "available_on", "to": "Nintendo Switch"}, {"from": "The Witcher 3: Wild Hunt", "title": "published_by", "to": "CD PROJEKT RED"}, {"from": "The Witcher 3: Wild Hunt", "title": "has_genre", "to": "Action RPG"}, {"from": "The Witcher 3: Wild Hunt", "title": "available_on", "to": "PC"}, {"from": "Super Smash Bros. Brawl", "title": "developed_by", "to": "Intelligent Systems"}, {"from": "Super Smash Bros. Brawl", "title": "has_genre", "to": "Action"}, {"from": "Super Smash Bros. Brawl", "title": "available_on", "to": "Wii"}, {"from": "Super Smash Bros. Brawl", "title": "published_by", "to": "Nintendo"}, {"from": "Company of Heroes", "title": "developed_by", "to": "Feral Interactive"}, {"from": "Company of Heroes", "title": "has_genre", "to": "Strategy"}, {"from": "Company of Heroes", "title": "available_on", "to": "iOS"}, {"from": "Company of Heroes", "title": "published_by", "to": "SEGA"}, {"from": "Gran Turismo 2", "title": "developed_by", "to": "Polyphony Digital"}, {"from": "Gran Turismo 2", "title": "has_genre", "to": "Driving"}, {"from": "Gran Turismo 2", "title": "available_on", "to": "Dreamcast"}, {"from": "Gran Turismo 2", "title": "published_by", "to": "Sony Computer Entertainment"}, {"from": "The Last of Us Part II", "title": "developed_by", "to": "Naughty Dog"}, {"from": "The Last of Us Part II", "title": "has_genre", "to": "General"}, {"from": "The Last of Us Part II", "title": "available_on", "to": "PlayStation 4"}, {"from": "The Last of Us Part II", "title": "published_by", "to": "Sony Interactive Entertainment"}, {"from": "Grand Theft Auto: Chinatown Wars", "title": "developed_by", "to": "Rockstar North"}, {"from": "Grand Theft Auto: Chinatown Wars", "title": "has_genre", "to": "Action Adventure"}, {"from": "Grand Theft Auto: Chinatown Wars", "title": "available_on", "to": "iOS"}, {"from": "Grand Theft Auto: Chinatown Wars", "title": "published_by", "to": "Rockstar Games"}, {"from": "Hades", "title": "published_by", "to": "Supergiant Games"}, {"from": "Hades", "title": "has_genre", "to": "Action Adventure"}, {"from": "Hades", "title": "available_on", "to": "PC"}, {"from": "Half-Life: Alyx", "title": "developed_by", "to": "Valve Software"}, {"from": "Half-Life: Alyx", "title": "has_genre", "to": "Action"}, {"from": "Half-Life: Alyx", "title": "available_on", "to": "PC"}, {"from": "Half-Life: Alyx", "title": "published_by", "to": "Valve"}, {"from": "Unreal Tournament 2004", "title": "developed_by", "to": "Digital Extremes"}, {"from": "Unreal Tournament 2004", "title": "has_genre", "to": "Action"}, {"from": "Unreal Tournament 2004", "title": "available_on", "to": "PC"}, {"from": "Unreal Tournament 2004", "title": "published_by", "to": "Atari"}, {"from": "Braid", "title": "developed_by", "to": "Number None"}, {"from": "Braid", "title": "has_genre", "to": "Action"}, {"from": "Braid", "title": "available_on", "to": "PC"}, {"from": "Braid", "title": "published_by", "to": "Microsoft Studios"}, {"from": "Super Mario 3D World", "title": "published_by", "to": "Nintendo"}, {"from": "Super Mario 3D World", "title": "has_genre", "to": "Platformer"}, {"from": "Super Mario 3D World", "title": "available_on", "to": "Wii U"}, {"from": "Ori and the Will of the Wisps", "title": "developed_by", "to": "Moon Studios"}, {"from": "Ori and the Will of the Wisps", "title": "has_genre", "to": "Action"}, {"from": "Ori and the Will of the Wisps", "title": "available_on", "to": "PC"}, {"from": "Ori and the Will of the Wisps", "title": "published_by", "to": "Microsoft Studios"}, {"from": "SSX", "title": "published_by", "to": "Electronic Arts"}, {"from": "SSX", "title": "has_genre", "to": "Sports"}, {"from": "SSX", "title": "available_on", "to": "Xbox 360"}, {"from": "Minecraft", "title": "developed_by", "to": "4J Studios"}, {"from": "Minecraft", "title": "has_genre", "to": "Action Adventure"}, {"from": "Minecraft", "title": "available_on", "to": "iOS"}, {"from": "Minecraft", "title": "published_by", "to": "Microsoft Studios"}, {"from": "Undertale", "title": "published_by", "to": "8-4"}, {"from": "Undertale", "title": "has_genre", "to": "Role-Playing"}, {"from": "Undertale", "title": "available_on", "to": "Linux"}, {"from": "Persona 4 Golden", "title": "developed_by", "to": "Atlus"}, {"from": "Persona 4 Golden", "title": "has_genre", "to": "Role-Playing"}, {"from": "Persona 4 Golden", "title": "available_on", "to": "PC"}, {"from": "Persona 4 Golden", "title": "published_by", "to": "SEGA"}, {"from": "Persona 5", "title": "developed_by", "to": "Atlus"}, {"from": "Persona 5", "title": "has_genre", "to": "Role-Playing"}, {"from": "Persona 5", "title": "available_on", "to": "PlayStation 4"}, {"from": "Persona 5", "title": "published_by", "to": "Deep Silver"}, {"from": "SSX 3", "title": "developed_by", "to": "Electronic Arts Canada"}, {"from": "SSX 3", "title": "has_genre", "to": "Sports"}, {"from": "SSX 3", "title": "available_on", "to": "Xbox"}, {"from": "SSX 3", "title": "published_by", "to": "Electronic Arts"}, {"from": "Tom Clancy\u0027s Splinter Cell", "title": "developed_by", "to": "Ubisoft"}, {"from": "Tom Clancy\u0027s Splinter Cell", "title": "has_genre", "to": "Action Adventure"}, {"from": "Tom Clancy\u0027s Splinter Cell", "title": "available_on", "to": "Xbox One"}, {"from": "Tom Clancy\u0027s Splinter Cell", "title": "published_by", "to": "Ubisoft Entertainment"}, {"from": "Fallout 3", "title": "published_by", "to": "Bethesda Softworks"}, {"from": "Fallout 3", "title": "has_genre", "to": "Role-Playing"}, {"from": "Fallout 3", "title": "available_on", "to": "PC"}, {"from": "Gears of War 2", "title": "developed_by", "to": "Epic Games"}, {"from": "Gears of War 2", "title": "has_genre", "to": "Action"}, {"from": "Gears of War 2", "title": "available_on", "to": "Xbox One"}, {"from": "Gears of War 2", "title": "published_by", "to": "Microsoft Studios"}, {"from": "Mass Effect 3", "title": "developed_by", "to": "BioWare"}, {"from": "Mass Effect 3", "title": "has_genre", "to": "Role-Playing"}, {"from": "Mass Effect 3", "title": "available_on", "to": "Xbox 360"}, {"from": "Mass Effect 3", "title": "published_by", "to": "Electronic Arts"}, {"from": "Skies of Arcadia", "title": "published_by", "to": "SEGA"}, {"from": "Skies of Arcadia", "title": "has_genre", "to": "Role-Playing"}, {"from": "Skies of Arcadia", "title": "available_on", "to": "GameCube"}, {"from": "The Legend of Zelda: Skyward Sword", "title": "published_by", "to": "Nintendo"}, {"from": "The Legend of Zelda: Skyward Sword", "title": "has_genre", "to": "Action Adventure"}, {"from": "The Legend of Zelda: Skyward Sword", "title": "available_on", "to": "Wii"}, {"from": "Castlevania: Symphony of the Night", "title": "developed_by", "to": "Sony Interactive Entertainment"}, {"from": "Castlevania: Symphony of the Night", "title": "has_genre", "to": "Action"}, {"from": "Castlevania: Symphony of the Night", "title": "available_on", "to": "Android"}, {"from": "Castlevania: Symphony of the Night", "title": "published_by", "to": "Konami"}, {"from": "Super Smash Bros. Ultimate", "title": "published_by", "to": "Nintendo"}, {"from": "Super Smash Bros. Ultimate", "title": "has_genre", "to": "Action"}, {"from": "Super Smash Bros. Ultimate", "title": "available_on", "to": "Nintendo Switch"}, {"from": "Resident Evil 2", "title": "published_by", "to": "Capcom"}, {"from": "Resident Evil 2", "title": "has_genre", "to": "Action Adventure"}, {"from": "Resident Evil 2", "title": "available_on", "to": "PC"}, {"from": "INSIDE", "title": "published_by", "to": "Playdead"}, {"from": "INSIDE", "title": "has_genre", "to": "Action"}, {"from": "INSIDE", "title": "available_on", "to": "iOS"}, {"from": "Prince of Persia: The Sands of Time", "title": "developed_by", "to": "Ubisoft"}, {"from": "Prince of Persia: The Sands of Time", "title": "has_genre", "to": "Action Adventure"}, {"from": "Prince of Persia: The Sands of Time", "title": "available_on", "to": "Xbox"}, {"from": "Prince of Persia: The Sands of Time", "title": "published_by", "to": "Ubisoft Entertainment"}, {"from": "Forza Horizon 4", "title": "developed_by", "to": "Playground Games"}, {"from": "Forza Horizon 4", "title": "has_genre", "to": "Racing"}, {"from": "Forza Horizon 4", "title": "available_on", "to": "Xbox Series S/X"}, {"from": "Forza Horizon 4", "title": "published_by", "to": "Microsoft Studios"}, {"from": "SSX Tricky", "title": "developed_by", "to": "Electronic Arts Canada"}, {"from": "SSX Tricky", "title": "has_genre", "to": "Sports"}, {"from": "SSX Tricky", "title": "available_on", "to": "Game Boy Advance"}, {"from": "SSX Tricky", "title": "published_by", "to": "EA Sports BIG"}, {"from": "Uncharted 3: Drake\u0027s Deception", "title": "developed_by", "to": "Naughty Dog"}, {"from": "Uncharted 3: Drake\u0027s Deception", "title": "has_genre", "to": "Action Adventure"}, {"from": "Uncharted 3: Drake\u0027s Deception", "title": "available_on", "to": "PlayStation 3"}, {"from": "Uncharted 3: Drake\u0027s Deception", "title": "published_by", "to": "Sony Computer Entertainment"}, {"from": "Journey", "title": "developed_by", "to": "Sony Interactive Entertainment"}, {"from": "Journey", "title": "has_genre", "to": "Action"}, {"from": "Journey", "title": "available_on", "to": "iOS"}, {"from": "Journey", "title": "published_by", "to": "Sony Computer Entertainment"}, {"from": "Banjo-Kazooie", "title": "developed_by", "to": "Rare"}, {"from": "Banjo-Kazooie", "title": "has_genre", "to": "Action"}, {"from": "Banjo-Kazooie", "title": "available_on", "to": "Xbox One"}, {"from": "Banjo-Kazooie", "title": "published_by", "to": "Microsoft Studios"}, {"from": "Forza Motorsport", "title": "developed_by", "to": "Microsoft Game Studios"}, {"from": "Forza Motorsport", "title": "has_genre", "to": "Driving"}, {"from": "Forza Motorsport", "title": "available_on", "to": "Xbox"}, {"from": "Forza Motorsport", "title": "published_by", "to": "Microsoft Studios"}, {"from": "What Remains of Edith Finch", "title": "developed_by", "to": "Giant Sparrow"}, {"from": "What Remains of Edith Finch", "title": "has_genre", "to": "Adventure"}, {"from": "What Remains of Edith Finch", "title": "available_on", "to": "PC"}, {"from": "What Remains of Edith Finch", "title": "published_by", "to": "Annapurna Interactive"}, {"from": "What Remains of Edith Finch", "title": "has_genre", "to": "General"}, {"from": "Team Fortress 2", "title": "developed_by", "to": "Valve Software"}, {"from": "Team Fortress 2", "title": "has_genre", "to": "Action"}, {"from": "Team Fortress 2", "title": "available_on", "to": "PC"}, {"from": "Team Fortress 2", "title": "published_by", "to": "Valve"}, {"from": "System Shock 2", "title": "developed_by", "to": "Irrational Games"}, {"from": "System Shock 2", "title": "has_genre", "to": "Action Adventure"}, {"from": "System Shock 2", "title": "available_on", "to": "macOS"}, {"from": "System Shock 2", "title": "published_by", "to": "Electronic Arts"}, {"from": "Final Fantasy XII", "title": "published_by", "to": "Square Enix"}, {"from": "Final Fantasy XII", "title": "has_genre", "to": "Role-Playing"}, {"from": "Final Fantasy XII", "title": "available_on", "to": "PlayStation 2"}, {"from": "Super Smash Bros. Melee", "title": "developed_by", "to": "HAL Laboratory"}, {"from": "Super Smash Bros. Melee", "title": "has_genre", "to": "Action"}, {"from": "Super Smash Bros. Melee", "title": "available_on", "to": "GameCube"}, {"from": "Super Smash Bros. Melee", "title": "published_by", "to": "Nintendo"}, {"from": "Forza Motorsport 3", "title": "developed_by", "to": "Turn 10 Studios"}, {"from": "Forza Motorsport 3", "title": "has_genre", "to": "Driving"}, {"from": "Forza Motorsport 3", "title": "available_on", "to": "Xbox 360"}, {"from": "Forza Motorsport 3", "title": "published_by", "to": "Microsoft Studios"}, {"from": "Batman: Arkham Asylum", "title": "published_by", "to": "Feral Interactive"}, {"from": "Batman: Arkham Asylum", "title": "has_genre", "to": "Action Adventure"}, {"from": "Batman: Arkham Asylum", "title": "available_on", "to": "macOS"}, {"from": "Super Mario Sunshine", "title": "published_by", "to": "Nintendo"}, {"from": "Super Mario Sunshine", "title": "has_genre", "to": "Action"}, {"from": "Super Mario Sunshine", "title": "available_on", "to": "Nintendo Switch"}, {"from": "Tony Hawk\u0027s Pro Skater", "title": "developed_by", "to": "Neversoft"}, {"from": "Tony Hawk\u0027s Pro Skater", "title": "has_genre", "to": "Sports"}, {"from": "Tony Hawk\u0027s Pro Skater", "title": "available_on", "to": "Dreamcast"}, {"from": "Tony Hawk\u0027s Pro Skater", "title": "published_by", "to": "Activision Blizzard"}, {"from": "Super Smash Bros. for Wii U", "title": "developed_by", "to": "Bandai Namco Entertainment"}, {"from": "Super Smash Bros. for Wii U", "title": "has_genre", "to": "Action"}, {"from": "Super Smash Bros. for Wii U", "title": "available_on", "to": "Wii U"}, {"from": "Super Smash Bros. for Wii U", "title": "published_by", "to": "Nintendo"}]);
+
+                  nodeColors = {};
+                  allNodes = nodes.get({ returnType: "Object" });
+                  for (nodeId in allNodes) {
+                    nodeColors[nodeId] = allNodes[nodeId].color;
+                  }
+                  allEdges = edges.get({ returnType: "Object" });
+                  // adding nodes and edges to the graph
+                  data = {nodes: nodes, edges: edges};
+
+                  var options = {
+    "configure": {
+        "enabled": false
+    },
+    "edges": {
+        "color": {
+            "inherit": true
+        },
+        "smooth": {
+            "enabled": true,
+            "type": "dynamic"
+        }
+    },
+    "interaction": {
+        "dragNodes": true,
+        "hideEdgesOnDrag": false,
+        "hideNodesOnDrag": false
+    },
+    "physics": {
+        "enabled": true,
+        "stabilization": {
+            "enabled": true,
+            "fit": true,
+            "iterations": 1000,
+            "onlyDynamicEdges": false,
+            "updateInterval": 50
+        }
+    }
+};
+
+                  
+
+
+                  
+
+                  network = new vis.Network(container, data, options);
+
+                  
+
+                  
+
+                  
+
+
+                  
+                      network.on("stabilizationProgress", function(params) {
+                          document.getElementById('loadingBar').removeAttribute("style");
+                          var maxWidth = 496;
+                          var minWidth = 20;
+                          var widthFactor = params.iterations/params.total;
+                          var width = Math.max(minWidth,maxWidth * widthFactor);
+                          document.getElementById('bar').style.width = width + 'px';
+                          document.getElementById('text').innerHTML = Math.round(widthFactor*100) + '%';
+                      });
+                      network.once("stabilizationIterationsDone", function() {
+                          document.getElementById('text').innerHTML = '100%';
+                          document.getElementById('bar').style.width = '496px';
+                          document.getElementById('loadingBar').style.opacity = 0;
+                          // really clean the dom element
+                          setTimeout(function () {document.getElementById('loadingBar').style.display = 'none';}, 500);
+                      });
+                  
+
+                  return network;
+
+              }
+              drawGraph();
+        </script>
+    </body>
+</html>
