@@ -33,8 +33,8 @@ Il progetto **Videogame Success Predictor** è un'applicazione che utilizza tecn
    python -m venv myenv
    source myenv/bin/activate 
    ```
-   ```
-   Windows
+   Ambiente Windows
+   ```bash
    python -m venv myenv
    source myenv\Scripts\activate
    ```
