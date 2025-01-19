@@ -86,7 +86,4 @@ def preprocess_input(input_data, variance_threshold=0.90):
     # Estrai solo l'ultima riga (corrispondente ai dati di input)
     processed_data = template_normalized.iloc[[-1]]
 
-    # Salva i dati preprocessati (opzionale)
-    template_normalized.to_csv('data/processed/preprocessed_input.csv', index=False)
-
     return processed_data
